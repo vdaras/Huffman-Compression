@@ -70,7 +70,7 @@ static int create_lookup(huffman_node* huffman_root, bitset* lookup[256]) {
     return HUFFMAN_SUCCESS;
 }
 
-int huffman_compress_file(FILE* in, FILE* out, huffman_node* root) {
+static int huffman_compress_file(FILE* in, FILE* out, huffman_node* root) {
 
     bitset* lookup[256] = { NULL };
     int create_lookup_status = create_lookup(root, lookup);
@@ -129,7 +129,7 @@ int huffman_compress_file(FILE* in, FILE* out, huffman_node* root) {
 }
 
 
-int huffman_decompress_file(FILE* in, FILE* out) {
+static int huffman_decompress_file(FILE* in, FILE* out) {
 
     fseek(in, 0, SEEK_SET);
 
