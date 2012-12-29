@@ -30,21 +30,21 @@ static int calculate_buffer_size(int bitset_size) {
 }
 
 int bitset_create(bitset** bset, unsigned int size) {
-	bitset* retval = malloc(sizeof(bitset));
-	if(retval == NULL) {
-		(*bset) = NULL;
-		return BITSET_ALLOC_ERROR;
-	}
+    bitset* retval = malloc(sizeof(bitset));
+    if(retval == NULL) {
+        (*bset) = NULL;
+        return BITSET_ALLOC_ERROR;
+    }
 
-	retval->total_bits = 0;
+    retval->total_bits = 0;
 
     int buffer_size = calculate_buffer_size(size);
 
     retval->bit_buffer = malloc(buffer_size);
     if(retval->bit_buffer == NULL) {
-    	free(retval);
-    	(*bset) = NULL;
-    	return BITSET_ALLOC_ERROR;
+        free(retval);
+        (*bset) = NULL;
+        return BITSET_ALLOC_ERROR;
     }
 
     memset(retval->bit_buffer, 0, buffer_size);
@@ -54,15 +54,15 @@ int bitset_create(bitset** bset, unsigned int size) {
 }
 
 void bitset_destroy(bitset** bset) {
-	free((*bset)->bit_buffer);
-	free((*bset));
-	(*bset) = NULL;
+    free((*bset)->bit_buffer);
+    free((*bset));
+    (*bset) = NULL;
 }
 
 int bitset_set_bit(bitset* bset, unsigned int bit) {
-	if(bit >= bset->total_bits) {
-		return BITSET_OUT_OF_BOUNDS;
-	}
+    if(bit >= bset->total_bits) {
+        return BITSET_OUT_OF_BOUNDS;
+    }
 
     int bucket = bit / BUCKET_SIZE;
     int bit_index = BUCKET_SIZE - (bit - bucket * BUCKET_SIZE);
@@ -70,13 +70,13 @@ int bitset_set_bit(bitset* bset, unsigned int bit) {
     int mask = 1 << (bit_index - 1);
     bset->bit_buffer[bucket] |= mask;
 
-	return BITSET_SUCCESS;
+    return BITSET_SUCCESS;
 }
 
 int bitset_clear_bit(bitset* bset, unsigned int bit) {
-	if(bit >= bset->total_bits) {
-		return BITSET_OUT_OF_BOUNDS;
-	}
+    if(bit >= bset->total_bits) {
+        return BITSET_OUT_OF_BOUNDS;
+    }
 
     int bucket = bit / BUCKET_SIZE;
     int bit_index = BUCKET_SIZE - (bit - bucket * BUCKET_SIZE);
@@ -84,13 +84,13 @@ int bitset_clear_bit(bitset* bset, unsigned int bit) {
     int mask = ~(1 << (bit_index - 1));
     bset->bit_buffer[bucket] &= mask;
 
-	return BITSET_SUCCESS;
+    return BITSET_SUCCESS;
 }
 
 int bitset_get_bit(bitset* bset, unsigned int bit, unsigned int* value) {
-	if(bit >= bset->total_bits) {
-		return BITSET_OUT_OF_BOUNDS;
-	}
+    if(bit >= bset->total_bits) {
+        return BITSET_OUT_OF_BOUNDS;
+    }
 
     int bucket = bit / BUCKET_SIZE;
     int bit_index = BUCKET_SIZE - (bit - bucket * BUCKET_SIZE);
@@ -98,29 +98,29 @@ int bitset_get_bit(bitset* bset, unsigned int bit, unsigned int* value) {
     int mask = 1 << (bit_index - 1);
     (*value) = (bset->bit_buffer[bucket] & mask) != 0;	
 
-	return BITSET_SUCCESS;
+    return BITSET_SUCCESS;
 }
 
 int bitset_resize(bitset* bset, int new_size) {
 
     int prev_buffer_size = calculate_buffer_size(bset->total_bits);
 
-	int buffer_size = calculate_buffer_size(new_size);
-	
+    int buffer_size = calculate_buffer_size(new_size);
+
     if(prev_buffer_size < buffer_size) {
 
-		unsigned short int* temp = realloc(bset->bit_buffer, buffer_size); 
+        unsigned short int* temp = realloc(bset->bit_buffer, buffer_size); 
 
-		if(temp == NULL) {
-			return BITSET_ALLOC_ERROR;
-		}
+        if(temp == NULL) {
+             return BITSET_ALLOC_ERROR;
+        }
 
-    	int prev_total_buckets = (prev_buffer_size / SHORT_INT_SIZE);
-    	int new_buckets = (buffer_size / SHORT_INT_SIZE) - prev_total_buckets;
+        int prev_total_buckets = (prev_buffer_size / SHORT_INT_SIZE);
+        int new_buckets = (buffer_size / SHORT_INT_SIZE) - prev_total_buckets;
 
-    	memset(temp + prev_total_buckets, 0, new_buckets * SHORT_INT_SIZE);
+        memset(temp + prev_total_buckets, 0, new_buckets * SHORT_INT_SIZE);
 
-	    bset->bit_buffer = temp;
+        bset->bit_buffer = temp;
     }
 
     bset->total_bits = new_size;
@@ -129,63 +129,63 @@ int bitset_resize(bitset* bset, int new_size) {
 }
 
 int bitset_copy(bitset* copy_of, bitset** copy) {
-	int creation_status = bitset_create(copy, copy_of->total_bits);
+    int creation_status = bitset_create(copy, copy_of->total_bits);
 
-	if(creation_status != BITSET_SUCCESS) {
-		return creation_status;
-	}
+    if(creation_status != BITSET_SUCCESS) {
+        return creation_status;
+    }
 
-	int num_buckets = (copy_of->total_bits / BUCKET_SIZE) + 1;
+    int num_buckets = (copy_of->total_bits / BUCKET_SIZE) + 1;
 
-	memcpy((*copy)->bit_buffer, copy_of->bit_buffer, num_buckets * SHORT_INT_SIZE);
+    memcpy((*copy)->bit_buffer, copy_of->bit_buffer, num_buckets * SHORT_INT_SIZE);
 
-	return BITSET_SUCCESS;
+    return BITSET_SUCCESS;
 }
 
 int bitset_copy_bits(bitset* copy_of, bitset** copy, int n_bits) {
     
-	if(n_bits > copy_of->total_bits) {
-		n_bits = copy_of->total_bits;
-	}
+    if(n_bits > copy_of->total_bits) {
+        n_bits = copy_of->total_bits;
+    }
 
     int creation_status = bitset_create(copy, n_bits);
 
-	if(creation_status != BITSET_SUCCESS) {
-		return creation_status;
-	}
+    if(creation_status != BITSET_SUCCESS) {
+        return creation_status;
+    }
 
-	int num_buckets = (n_bits / BUCKET_SIZE) + 1;
+    int num_buckets = (n_bits / BUCKET_SIZE) + 1;
 
-	memcpy((*copy)->bit_buffer, copy_of->bit_buffer, num_buckets * SHORT_INT_SIZE);
+    memcpy((*copy)->bit_buffer, copy_of->bit_buffer, num_buckets * SHORT_INT_SIZE);
 
-	return BITSET_SUCCESS;
+    return BITSET_SUCCESS;
 }
 
 
 void bitset_serialize(bitset* bset, FILE* fp) {
 
-	fwrite(&bset->total_bits, 1, sizeof(unsigned int), fp);
+    fwrite(&bset->total_bits, 1, sizeof(unsigned int), fp);
 
-	int buffer_size = calculate_buffer_size(bset->total_bits);
-	fwrite(bset->bit_buffer, buffer_size, 1, fp);
+    int buffer_size = calculate_buffer_size(bset->total_bits);
+    fwrite(bset->bit_buffer, buffer_size, 1, fp);
 }
 
 
 int bitset_deserialize(bitset** bset, FILE* fp) {
-	
-	int bitset_size;
-	fread(&bitset_size, 1, sizeof(unsigned int), fp);
 
-	bitset* out;
-	int creation_status = bitset_create(&out, bitset_size);
-	if(creation_status != BITSET_SUCCESS) {
-		return creation_status;
-	} 
+    int bitset_size;
+    fread(&bitset_size, 1, sizeof(unsigned int), fp);
 
-	int buffer_size = calculate_buffer_size(bitset_size);
-	fread(out->bit_buffer, buffer_size, 1, fp);
+    bitset* out;
+    int creation_status = bitset_create(&out, bitset_size);
+    if(creation_status != BITSET_SUCCESS) {
+        return creation_status;
+    } 
 
-	(*bset) = out;
-	return BITSET_SUCCESS;
+    int buffer_size = calculate_buffer_size(bitset_size);
+    fread(out->bit_buffer, buffer_size, 1, fp);
+
+    (*bset) = out;
+    return BITSET_SUCCESS;
 }
 
