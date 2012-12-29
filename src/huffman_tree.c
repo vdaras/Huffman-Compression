@@ -218,7 +218,7 @@ int huffman_tree_serialize(huffman_node* root, FILE* fp) {
 }
 
 
-int huffman_tree_deserialize_recurse(huffman_node* curr_node, bitset* tree_binary_rep, int *bits_read) {
+static int huffman_tree_deserialize_recurse(huffman_node* curr_node, bitset* tree_binary_rep, int *bits_read) {
     if((*bits_read) >= tree_binary_rep->total_bits) {
         return HUFFMAN_SUCCESS;
     }
