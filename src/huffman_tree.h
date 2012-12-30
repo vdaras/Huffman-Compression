@@ -25,6 +25,7 @@
 #define HUFFMAN_SUCCESS 0
 #define HUFFMAN_ALLOC_ERROR -1
 #define HUFFMAN_ENCODING_ERROR -2
+#define HUFFMAN_TREE_EMPTY -3
 
 typedef struct huffman_node_t {
     unsigned char which_char;

@@ -23,19 +23,26 @@
 #include "bitset.h"
 #include <stdlib.h>
 
+static const int BUFFER_SIZE = 2048;
+
 static void count_frequencies(FILE* fp, unsigned int frequencies[256]) {
     
-    unsigned char byte;
-    
+    unsigned char bytes[BUFFER_SIZE]; 
+
     for(int i = 0; i < 256; i++) {
         frequencies[i] = 0;
     }
     
-    while(fread(&byte, 1, sizeof(unsigned char), fp) != 0) {
-        frequencies[(unsigned int)byte]++;
-    }
+    unsigned int bytes_read = 0;
+    while((bytes_read = fread(bytes, sizeof(unsigned char), BUFFER_SIZE, fp)) != 0) {
+        
+        for(int curr_byte = 0; curr_byte < bytes_read; curr_byte++) {
 
-    fseek(fp, 0, SEEK_SET);
+            unsigned char byte = bytes[curr_byte];
+
+            frequencies[(unsigned int)byte]++;         
+        }
+    }
 }
 
 static int create_lookup_recurse(huffman_node* curr_node, bitset* lookup[256], bitset* curr_path, int is_left, int depth) {
@@ -85,38 +92,59 @@ static int huffman_compress_file(FILE* in, FILE* out, huffman_node* root) {
     }
 
     fseek(in, 0, SEEK_SET);
-    unsigned char byte, byte_out = 0;
+    unsigned char bytes[BUFFER_SIZE];
+    unsigned char bytes_out[BUFFER_SIZE];
+    unsigned char byte_out = 0;
+    int bytes_read = 0;
+    int bytes_produced = 0;
     int bits_written = 0;
-    int total_written = 0;
 
     huffman_tree_serialize(root, out);
 
-    while(fread(&byte, 1, sizeof(unsigned char), in) != 0) {
-        if(lookup[byte] == NULL) {
-            return HUFFMAN_UNMAPPED_BYTE;
-        }
+    while((bytes_read = fread(bytes, sizeof(unsigned char), BUFFER_SIZE, in)) != 0) {
 
-        unsigned char mask;
+        for(int i = 0; i < bytes_read; i++) {
 
-        for(int i = 0; i < lookup[byte]->total_bits; i++) {
-            unsigned int bit;
-            bitset_get_bit(lookup[byte], i, &bit);
+            unsigned char byte = bytes[i];
 
-            mask = bit << (8 - bits_written - 1);
-            bits_written++;
+            if(lookup[byte] == NULL) {
+                return HUFFMAN_UNMAPPED_BYTE;
+            }
 
-            byte_out |= mask;
+            unsigned char mask;
 
-            if(bits_written >= 8) {
-                total_written += fwrite(&byte_out, 1, sizeof(unsigned char), out);
-                bits_written = 0;
-                byte_out = 0;
+            for(int i = 0; i < lookup[byte]->total_bits; i++) {
+                unsigned int bit;
+                bitset_get_bit(lookup[byte], i, &bit);
+
+                mask = bit << (8 - bits_written - 1);
+                bits_written++;
+
+                byte_out |= mask;
+
+                if(bits_written >= 8) {
+                    bytes_out[bytes_produced] = byte_out;
+                    bytes_produced++;
+
+                    if(bytes_produced >= BUFFER_SIZE) {
+                        fwrite(bytes_out, sizeof(unsigned char), BUFFER_SIZE, out);
+                        bytes_produced = 0; 
+                    }
+
+                    bits_written = 0;
+                    byte_out = 0;
+                }
             }
         }
     }
 
     if(bits_written != 0) {
-        total_written += fwrite(&byte_out, 1, sizeof(unsigned char), out);
+        bytes_out[bytes_produced] = byte_out;
+        bytes_produced++;
+    }
+
+    if(bytes_produced > 0) {
+        fwrite(bytes_out, sizeof(unsigned char), bytes_produced, out);
     }
 
     for(int i = 0; i < 256; i++) {
@@ -139,31 +167,48 @@ static int huffman_decompress_file(FILE* in, FILE* out) {
         return deserialization_status;        
     } 
 
+    unsigned char bytes[BUFFER_SIZE];
+    unsigned char bytes_out[BUFFER_SIZE];
     int bits_read = 0;
-    int total_read = 0;
-    int curr_read = 0;
+    int bytes_read = 0;
+    int bytes_produced = 0;
 
     huffman_node* curr = huffman_root;
-    unsigned char byte;
-    while((curr_read = fread(&byte, 1, sizeof(unsigned char), in)) != 0) {
-        total_read += curr_read;
-        bits_read = 0;
-        while(bits_read < 8) {
+    while((bytes_read = fread(bytes, sizeof(unsigned char), BUFFER_SIZE, in)) != 0) {
+        
+        for(int i = 0; i < bytes_read; i++) {
+            
+            unsigned char byte = bytes[i];
 
-            if(curr->is_leaf) {
-                fwrite(&curr->which_char, 1, sizeof(unsigned char), out);
-                curr = huffman_root;
-            } else {
-                int mask = 1 << (8 - bits_read - 1);
-                int bit = (byte & mask) != 0; 
-                if(bit == 0) {
-                    curr = curr->left;
+            bits_read = 0;
+            while(bits_read < 8) {
+
+                if(curr->is_leaf) {
+                    bytes_out[bytes_produced] = curr->which_char;
+                    bytes_produced++;
+
+                    if(bytes_produced >= BUFFER_SIZE) {
+                        fwrite(bytes_out, sizeof(unsigned char), BUFFER_SIZE, out);
+                        bytes_produced = 0;
+                    }
+
+                    curr = huffman_root;
                 } else {
-                    curr = curr->right;
+                    int mask = 1 << (8 - bits_read - 1);
+                    int bit = (byte & mask) != 0; 
+                    if(bit == 0) {
+                        curr = curr->left;
+                    } else {
+                        curr = curr->right;
+                    }
+                    bits_read++;
                 }
-                bits_read++;
-            }
-        } 
+            } 
+        }
+    }
+
+    if(bytes_produced > 0) {
+        fwrite(bytes_out, sizeof(unsigned char), bytes_produced, out);
     }
 
     huffman_tree_destroy(&huffman_root);
@@ -174,7 +219,8 @@ int huffman_encode(FILE* in, FILE* out) {
     
     unsigned int frequencies[256];
     count_frequencies(in, frequencies);
-    
+    fseek(in, 0, SEEK_SET);
+
     huffman_node* root;
     int retval = huffman_tree_create(&root, frequencies);
     if(retval != HUFFMAN_SUCCESS) {

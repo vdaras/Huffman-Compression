@@ -58,9 +58,10 @@ static void huffman_node_destroy(void* node) {
 
 int huffman_tree_create(huffman_node** root, unsigned int frequencies[256]) {
     
+    int retval = HUFFMAN_TREE_EMPTY;
     binary_heap* heap = NULL;
-    int retval = binary_heap_create(&heap, compare_huffman_nodes, huffman_node_destroy);
-    if(retval == BINARYHEAP_ALLOC_ERROR) {
+    int heap_creation_status = binary_heap_create(&heap, compare_huffman_nodes, huffman_node_destroy);
+    if(heap_creation_status == BINARYHEAP_ALLOC_ERROR) {
         return HUFFMAN_ALLOC_ERROR;
     }
     
@@ -124,12 +125,17 @@ int huffman_tree_create(huffman_node** root, unsigned int frequencies[256]) {
         }
     }
     
-    void* root_huffman_node;
-    binary_heap_extract(heap, &root_huffman_node);
+    void* root_huffman_node = NULL;
+
+    int extraction_status = binary_heap_extract(heap, &root_huffman_node);
+    if(extraction_status != BINARYHEAP_EMPTY) {
+        retval = HUFFMAN_SUCCESS;
+    }
+
     binary_heap_destroy(&heap);
     
     (*root) = (huffman_node*) root_huffman_node;
-    return HUFFMAN_SUCCESS;
+    return retval;
 }
 
 void huffman_tree_destroy(huffman_node** root) {
