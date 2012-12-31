@@ -62,15 +62,34 @@ static int create_lookup_recurse(huffman_node* curr_node, bitset* lookup[256], b
     return HUFFMAN_SUCCESS;
 }
 
+static void destroy_lookup(bitset* lookup[256]) {
+    for(int i = 0; i < 256; i++) {
+        if(lookup[i] != NULL) {
+            bitset_destroy(&lookup[i]);
+        }
+    }  
+}
+
 static int create_lookup(huffman_node* huffman_root, bitset* lookup[256]) {
     bitset *curr_path;
-    int creation_status = bitset_create(&curr_path, 30);
-    if(creation_status == BITSET_ALLOC_ERROR) {
+    int bitset_creation_status = bitset_create(&curr_path, 30);
+    if(bitset_creation_status == BITSET_ALLOC_ERROR) {
         return HUFFMAN_ALLOC_ERROR;
     }
 
-    create_lookup_recurse(huffman_root->left, lookup, curr_path, 1, 0);
-    create_lookup_recurse(huffman_root->right, lookup, curr_path, 0, 0);
+    int lookup_creation_status = create_lookup_recurse(huffman_root->left, lookup, curr_path, 1, 0);
+    if(lookup_creation_status != HUFFMAN_SUCCESS) {
+        bitset_destroy(&curr_path); 
+        destroy_lookup(lookup);
+        return lookup_creation_status;
+    }
+
+    lookup_creation_status = create_lookup_recurse(huffman_root->right, lookup, curr_path, 0, 0);
+    if(lookup_creation_status != HUFFMAN_SUCCESS) {
+        bitset_destroy(&curr_path); 
+        destroy_lookup(lookup);
+        return lookup_creation_status;
+    }
 
     bitset_destroy(&curr_path); 
 
@@ -79,15 +98,14 @@ static int create_lookup(huffman_node* huffman_root, bitset* lookup[256]) {
 
 static int huffman_compress_file(FILE* in, FILE* out, huffman_node* root) {
 
+    int tree_serialization_status = huffman_tree_serialize(root, out);
+    if(tree_serialization_status != HUFFMAN_SUCCESS) {
+        return tree_serialization_status;
+    }
+
     bitset* lookup[256] = { NULL };
     int create_lookup_status = create_lookup(root, lookup);
     if(create_lookup_status != HUFFMAN_SUCCESS) {
-        for(int i = 0; i < 256; i++) {
-            if(lookup[i] != NULL) {
-                bitset_destroy(&lookup[i]);
-            }
-        }
-
         return create_lookup_status;
     }
 
@@ -98,8 +116,6 @@ static int huffman_compress_file(FILE* in, FILE* out, huffman_node* root) {
     int bytes_read = 0;
     int bytes_produced = 0;
     int bits_written = 0;
-
-    huffman_tree_serialize(root, out);
 
     while((bytes_read = fread(bytes, sizeof(unsigned char), BUFFER_SIZE, in)) != 0) {
 
@@ -147,11 +163,7 @@ static int huffman_compress_file(FILE* in, FILE* out, huffman_node* root) {
         fwrite(bytes_out, sizeof(unsigned char), bytes_produced, out);
     }
 
-    for(int i = 0; i < 256; i++) {
-        if(lookup[i] != NULL) {
-            bitset_destroy(&lookup[i]);
-        }
-    }
+    destroy_lookup(lookup);
 
     return HUFFMAN_SUCCESS;
 }

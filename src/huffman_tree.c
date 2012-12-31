@@ -245,6 +245,7 @@ static int huffman_tree_deserialize_recurse(huffman_node* curr_node, bitset* tre
 
         deserialization_status = huffman_tree_deserialize_recurse(new_node, tree_binary_rep, bits_read);
         if(deserialization_status != HUFFMAN_SUCCESS) {
+            huffman_node_destroy(new_node);
             return deserialization_status;
         }
 
@@ -257,6 +258,7 @@ static int huffman_tree_deserialize_recurse(huffman_node* curr_node, bitset* tre
 
         deserialization_status = huffman_tree_deserialize_recurse(new_node, tree_binary_rep, bits_read);
         if(deserialization_status != HUFFMAN_SUCCESS) {
+            huffman_node_destroy(new_node);
             return deserialization_status;
         }
 
