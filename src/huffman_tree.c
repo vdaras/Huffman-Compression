@@ -56,6 +56,14 @@ static void huffman_node_destroy(void* node) {
     free(h_node);
 }
 
+/**
+ * This function creates a Huffman tree using a heap. For each byte that has a frequency
+ * greater than 0, a node is created that stores the byte and its frequency and gets
+ * inserted to a heap. To construct the tree, two nodes with the highest priority
+ * are extracted from the heap and a new node is created with the extracted nodes as
+ * its left and right children. This is repeated until only one node is left in the heap 
+ * which is the root of the Huffman tree.
+ */
 int huffman_tree_create(huffman_node** root, unsigned int frequencies[256]) {
     
     int retval = HUFFMAN_TREE_EMPTY;
@@ -155,6 +163,12 @@ static int check_and_resize_bitset(bitset* bset, int bits_stored) {
     return HUFFMAN_SUCCESS;
 } 
 
+/**
+ * This function creates a binary representation of the huffman tree in order to serialize it to a file. 
+ * The binary representation is created recursively by traversing the tree in an in-order fashion.
+ * For each non-leaf node encountered a 0 is stored in the binary representation, whereas for the leaf
+ * nodes an 1 is stored followed by the byte assigned to the node.
+ */
 static int huffman_tree_serialize_recurse(huffman_node* curr_node, bitset* tree_binary_rep, int *bits_stored) {
 
     int resize_status = check_and_resize_bitset(tree_binary_rep, *bits_stored);
