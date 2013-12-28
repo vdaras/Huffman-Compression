@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Vasileios Daras. All rights reserved.
+ * Copyright (c) 2011-2014, Vasileios Daras. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301  USA
  */
-
+ 
 #include "bitset.h"
 #include <stdlib.h>
 #include <string.h>
